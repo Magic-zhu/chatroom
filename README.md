@@ -1,24 +1,18 @@
-# chatroom-temp
+## 项目介绍
 
-## Project setup
-```
-yarn install
-```
+这是一个用于学习node 所写的仿网页微信的即时聊天客户端<br>
+项目是用vue + socket-io写的。
 
-### Compiles and hot-reloads for development
-```
-yarn serve
-```
+###### 安装依赖
 
-### Compiles and minifies for production
-```
-yarn build
+```bash
+npm install
 ```
 
-### Lints and fixes files
-```
-yarn lint
-```
+### 功能点
 
-### Customize configuration
-See [Configuration Reference](https://cli.vuejs.org/config/).
+* 聊天广场 
+* 点对点聊天 
+* 好友功能
+* 聊天记录本地存储
+ 
