@@ -49,7 +49,7 @@
                             v-for="(item, index) in messageList"
                             :key="index"
                             class="messageItem"
-                            @click="focusMessageItem(item)"
+                            @click="focusMessageItem(item.user_name,index)"
                     >
                         <div class="messageItem_leftside">
                             <img :src="item.ava" alt/>
@@ -281,6 +281,7 @@
         let index = this.findIndexByUsername(this.active_chat);
         this.messages.push(data);
         this.messageList[index].message_list.push(data);
+        this.srcollToBottom();
         this.syncToLocal();
       });
 
@@ -298,13 +299,9 @@
       //检查离线消息
       socket.on('offLineMessages',data=>{
         data.forEach((item)=>{
-            this.handleChatMessage(item)
+            this.handleChatMessage(JSON.parse(item));
         })
-        socket.emit('offLineMessagesReceived')
-      });
-
-      //处理系统消息
-      socket.on("systemMessage", data => {
+        socket.emit('offLineMessagesReceived',{user:this.user})
       });
     },
     beforeDestroy() {
@@ -338,7 +335,6 @@
           this.chat();
         }
         this.message = "";
-        this.syncToLocal();
       },
       /**
        * @params - to 发送对象
@@ -360,6 +356,10 @@
             this.user_ava = res.data.data.user_ava;
             localforage.setItem("token", res.data.data.token);
             localforage.setItem("user_ava", res.data.data.user_ava);
+            localforage.getItem("chatHistory_" + this.user, (err, value) => {
+              err && console.error(err);
+              this.messageList = value || this.messageList;
+            });
             socket.open();
             this.loginStatus = true;
             this.$toast.success("登录成功");
@@ -402,11 +402,13 @@
       },
 
       //点击消息栏某个消息
-      focusMessageItem(item) {
-        this.active_chat = item.user_name;
-        item.is_read = 1; //利用引用
+      focusMessageItem(user_name,index) {
+        this.active_chat = user_name;
         this.message = "";
-        this.messages = item.message_list;
+        this.messageList[index].is_read = 1;
+        let jsonString = JSON.stringify(this.messageList[index].message_list);
+        this.messages = JSON.parse(jsonString);
+        this.srcollToBottom();
         this.syncToLocal();
       },
 
@@ -457,7 +459,6 @@
           })
           .then(res => {
             if (res.data.errcode == 0) {
-              console.log(res.data.data.user_friends);
               this.friendList = res.data.data.user_friends;
             }
           });
@@ -484,10 +485,11 @@
                 this.friendList[this.bottomNowIndex].user_name
               ) {
                 //如果存在了 切换到当前这个人
-                this.focusMessageItem(this.messageList[i])
+                this.focusMessageItem(this.messageList[i].user_name,i);
                 return;
               }
             }
+            //如果没有 先新增 在切换到这个人
             this.messageList.push({
               user_name: this.friendList[this.bottomNowIndex].user_name,
               message: "",
@@ -495,6 +497,7 @@
               is_read: 1,
               message_list: []
             });
+            this.focusMessageItem(this.messageList[this.messageList.length-1].user_name,this.messageList.length-1);
             break;
           case "delete":
             break;
@@ -506,7 +509,8 @@
        */
 
       findIndexByUsername(name) {
-        for (let i = 0; i < this.messageList.length; i++) {
+        let len = this.messageList.length;
+        for (let i = 0; i < len; i++) {
           if (this.messageList[i].user_name == name) {
             return i;
           }
@@ -541,8 +545,15 @@
             this.messageList[index].is_read = 1;
           }
         }
+        this.srcollToBottom();
         this.syncToLocal();
       },
+      srcollToBottom(){
+        setTimeout(()=>{
+          let area = document.getElementsByClassName('message_show')[0];
+          area.scrollTop = area.scrollHeight;
+        },100)
+      }
     }
   };
 </script>
