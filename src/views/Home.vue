@@ -1,6 +1,6 @@
 <template>
     <div class="ct">
-        <header></header>
+        <header>v1.0.0</header>
 
         <!-- 登录模块 -->
         <mu-paper class="login_wrapper" :z-depth="3" v-if="!loginStatus">
@@ -36,6 +36,11 @@
                     <div class="function_pannel_friend" @click="changeActiveType('friend')">
                         <mu-icon size="40" value="contacts" color="white" v-show="active_type!='friend'"></mu-icon>
                         <mu-icon size="40" value="contacts" color="lightblue" v-show="active_type=='friend'"></mu-icon>
+                    </div>
+                </mu-tooltip>
+                <mu-tooltip content="添加好友" placement="right">
+                    <div class="function_pannel_friend" @click="addFriend()">
+                        <mu-icon size="40" value="add_box" color="white" v-show="active_type!='friend'"></mu-icon>
                     </div>
                 </mu-tooltip>
             </div>
@@ -165,6 +170,12 @@
             <mu-button slot="actions" flat color="primary" @click="closeSimpleDialog()">否</mu-button>
         </mu-dialog>
 
+<!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
+<!--            <mu-text-field v-model="form.input"></mu-text-field>-->
+<!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Disagree</mu-button>-->
+<!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Agree</mu-button>-->
+<!--        </mu-dialog>-->
+
         <!--个人信息面板弹窗-->
         <mu-dialog title="设置" width="500" height="600" :open.sync="personnalInfoModal">
             <div class="pannel_box">
@@ -243,7 +254,8 @@
         active_type: "chat",
         messages: [], //当前聊天框聊天信息
         active_chat: "聊天广场",//当前聊天框所属
-        message: "" //发送框内的信息
+        message: "", //发送框内的信息
+        input_addFriendDialog:false, //输入好友账号 添加好友
       };
     },
     mounted() {
@@ -440,7 +452,7 @@
 
       //请求添加好友
       sendAddFriendTask() {
-        io.emit(
+        socket.emit(
           "addFriendTo", {
             from: {
               user_name: this.user,
@@ -553,6 +565,23 @@
           let area = document.getElementsByClassName('message_show')[0];
           area.scrollTop = area.scrollHeight;
         },100)
+      },
+      addFriend(){
+        this.$prompt('请输入要添加的账号', '提示').then(({ result, value }) => {
+          if (result) {
+            socket.emit("addFriendTo", {
+                from: {
+                  user_name: this.user,
+                  user_ava: this.user_ava
+                },
+                to: value
+              }
+            );
+            this.$toast.success('请求已发送');
+          } else {
+            this.$toast.message('点击了取消');
+          }
+        });
       }
     }
   };
