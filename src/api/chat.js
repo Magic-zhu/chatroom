@@ -50,3 +50,16 @@ export const getFriendList = function(user_name,token){
         host + "/users/friendList?user_name="+user_name+"&token="+token,
     )
 }
+
+
+/**
+ * 添加好友
+ * @param data -请求参数
+ * @returns {Promise<AxiosResponse<T>>}
+ */
+export const addFriend = function(data) {
+  return axios.post(
+    host + "/users/addFriend",
+    data,
+  )
+}

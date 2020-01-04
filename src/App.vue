@@ -21,4 +21,7 @@
       padding:0;
     }
   }
+  .mu-expansion-panel-content{
+    padding: 0 !important;
+  }
 </style>

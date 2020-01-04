@@ -40,7 +40,7 @@
                 </mu-tooltip>
                 <mu-tooltip content="添加好友" placement="right">
                     <div class="function_pannel_friend" @click="addFriend()">
-                        <mu-icon size="40" value="add_box" color="white" v-show="active_type!='friend'"></mu-icon>
+                        <mu-icon size="40" value="add_box" color="white"></mu-icon>
                     </div>
                 </mu-tooltip>
             </div>
@@ -128,8 +128,8 @@
                             <div
                                     class="messageItem"
                                     v-for="(item, index) in newFriendList"
-                                    :key="index+'c'"
-                                    @click="openBotttomSheet(index)"
+                                    :key="'new_friend'+index"
+                                    @click="handleNewFriendTask(index)"
                             >
                                 <div class="messageItem_leftside">
                                     <img :src="item.from.user_ava" alt/>
@@ -170,11 +170,18 @@
             <mu-button slot="actions" flat color="primary" @click="closeSimpleDialog()">否</mu-button>
         </mu-dialog>
 
-<!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
-<!--            <mu-text-field v-model="form.input"></mu-text-field>-->
-<!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Disagree</mu-button>-->
-<!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Agree</mu-button>-->
-<!--        </mu-dialog>-->
+        <!--处理添加好友任务的弹窗-->
+        <mu-dialog title="提示" width="360" :open.sync="newFriendTaskModal">
+            接受此人的好友请求吗？
+            <mu-button slot="actions" flat color="success" @click="agreeFriendRequest()">是</mu-button>
+            <mu-button slot="actions" flat color="primary" @click="newFriendTaskModal=false">否</mu-button>
+        </mu-dialog>
+
+        <!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
+        <!--            <mu-text-field v-model="form.input"></mu-text-field>-->
+        <!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Disagree</mu-button>-->
+        <!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Agree</mu-button>-->
+        <!--        </mu-dialog>-->
 
         <!--个人信息面板弹窗-->
         <mu-dialog title="设置" width="500" height="600" :open.sync="personnalInfoModal">
@@ -188,7 +195,7 @@
                     <div class="account_setting">
                         <img :src="user_ava" alt class="mb10"/>
                         <span class="mb10">用户账号:{{user}}</span>
-                        <mu-button slot="actions">退出登录</mu-button>
+                        <mu-button slot="actions" @click="loginOut()">退出登录</mu-button>
                     </div>
                 </div>
             </div>
@@ -224,11 +231,33 @@
     transports: ["websocket", "xhr-polling", "jsonp-polling"],
     autoConnect: false
   }); //顺带解决本地的跨域
-  import { login, register, checkLogin, getFriendList } from "../api/chat";
+
+  import { login, register, checkLogin, getFriendList ,addFriend } from "../api/chat";
 
   export default {
     data() {
       return {
+        token: "",
+        loginStatus: false,
+        loading: true,
+        user: "",
+        pwd: "",
+        user_ava: "",
+        defaultAva, //默认头像
+        bottomNowIndex: null, //当前正在操作的好友 在数组中的位置
+        message: "", //发送框内的信息
+        /**
+         * 当前状态下选中的状态 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         */
+        active_type: "chat",
+        active_chat: "聊天广场",//当前聊天框所属
+        modal_active_user: null, // 加好友弹窗暂存的被添加者
+        active_new_friend:null,//当前正在操作的好友请求 数组中的位置
+        /**
+         * 各个列表~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         */
+        messages: [], //当前聊天框聊天信息
+        stickList: [],//置顶的聊天会话
         messageList: [
           {
             user_name: "聊天广场",
@@ -238,24 +267,16 @@
             message_list: []
           }
         ], //消息栏
-        loginStatus: false,
-        loading: true,
-        user: "",
-        pwd: "",
-        addFriendModal: false, // 加好友的弹窗
-        modal_active_user: null, // 加好友弹窗暂存的被添加者
-        personnalInfoModal: false, //个人信息弹窗
-        user_ava: "",
-        defaultAva, //默认头像
-        friendList: [],
+        friendList: [], //好友列表
         newFriendList: [],//新的好友请求列表
-        bottomSheetOpen: false,
-        bottomNowIndex: null, //当前正在操作的好友 在数组中的位置
-        active_type: "chat",
-        messages: [], //当前聊天框聊天信息
-        active_chat: "聊天广场",//当前聊天框所属
-        message: "", //发送框内的信息
-        input_addFriendDialog:false, //输入好友账号 添加好友
+        /**
+         * 各类弹窗~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         */
+        newFriendTaskModal: false, // 处理好友请求的弹窗
+        bottomSheetOpen: false, // 点击好友列表弹窗
+        addFriendModal: false, // 加好友的弹窗
+        personnalInfoModal: false, // 个人信息弹窗
+        input_addFriendDialog: false //输入好友账号 添加好友
       };
     },
     mounted() {
@@ -266,12 +287,12 @@
       //处理失连
       socket.on("disconnect", () => {
         this.$toast.error("失去连接");
+        this.loginStatus = false;
       });
       //检查是否已经登录过
       this.checkIfLogin();
       //处理广播
       socket.on("sayback", data => {
-        "/;.";
         let index = this.findIndexByUsername("聊天广场");
         if (this.active_chat === "聊天广场") {
           this.messageList[index].is_read = 1;
@@ -306,14 +327,15 @@
       //别人发来的好友请求
       socket.on("addFriendFrom", data => {
         this.newFriendList.unshift(data);
+        this.$toast.info('有人加您为好友');
       });
 
       //检查离线消息
-      socket.on('offLineMessages',data=>{
-        data.forEach((item)=>{
-            this.handleChatMessage(JSON.parse(item));
-        })
-        socket.emit('offLineMessagesReceived',{user:this.user})
+      socket.on("offLineMessages", data => {
+        data.forEach((item) => {
+          this.handleChatMessage(JSON.parse(item));
+        });
+        socket.emit("offLineMessagesReceived", { user: this.user });
       });
     },
     beforeDestroy() {
@@ -331,6 +353,7 @@
           err && console.error(err);
           this.messageList = value || this.messageList;
         });
+        this.getFriendList();
       },
       //聊天广场
       submitMessage(e) {
@@ -360,12 +383,16 @@
           type: 2
         });
       },
-      //登录
+
+      /**
+       * 登录
+       */
       login() {
         login(this.user, this.pwd).then(res => {
           if (res.data.errcode == 0) {
             socket.emit("newUser", { user: this.user });
             this.user_ava = res.data.data.user_ava;
+            this.token = res.data.data.token;
             localforage.setItem("token", res.data.data.token);
             localforage.setItem("user_ava", res.data.data.user_ava);
             localforage.getItem("chatHistory_" + this.user, (err, value) => {
@@ -396,6 +423,7 @@
       checkIfLogin() {
         localforage.getItem("token", (err, value) => {
           if (!err) {
+            this.token = value;
             checkLogin(value).then(res => {
               if (res.data.errcode == 0) {
                 socket.open();
@@ -414,7 +442,7 @@
       },
 
       //点击消息栏某个消息
-      focusMessageItem(user_name,index) {
+      focusMessageItem(user_name, index) {
         this.active_chat = user_name;
         this.message = "";
         this.messageList[index].is_read = 1;
@@ -452,17 +480,20 @@
 
       //请求添加好友
       sendAddFriendTask() {
-        socket.emit(
-          "addFriendTo", {
-            from: {
-              user_name: this.user,
-              user_ava: this.user_ava
-            },
-            to: this.modal_active_user
-          }
-        );
+        if(this.checkIfFriend(this.modal_active_user)){
+          socket.emit(
+            "addFriendTo", {
+              from: {
+                user_name: this.user,
+                user_ava: this.user_ava
+              },
+              to: this.modal_active_user
+            }
+          );
+        }
       },
 
+      //获取好友列表
       getFriendList() {
         localforage
           .getItem("token")
@@ -497,7 +528,7 @@
                 this.friendList[this.bottomNowIndex].user_name
               ) {
                 //如果存在了 切换到当前这个人
-                this.focusMessageItem(this.messageList[i].user_name,i);
+                this.focusMessageItem(this.messageList[i].user_name, i);
                 return;
               }
             }
@@ -509,7 +540,7 @@
               is_read: 1,
               message_list: []
             });
-            this.focusMessageItem(this.messageList[this.messageList.length-1].user_name,this.messageList.length-1);
+            this.focusMessageItem(this.messageList[this.messageList.length - 1].user_name, this.messageList.length - 1);
             break;
           case "delete":
             break;
@@ -537,7 +568,7 @@
         localforage.setItem("chatHistory_" + this.user, this.messageList);
       },
 
-      handleChatMessage(data){
+      handleChatMessage(data) {
         let index = this.findIndexByUsername(data.user);
         if (index == -1) {
           this.messageList.push({
@@ -560,28 +591,69 @@
         this.srcollToBottom();
         this.syncToLocal();
       },
-      srcollToBottom(){
-        setTimeout(()=>{
-          let area = document.getElementsByClassName('message_show')[0];
+      srcollToBottom() {
+        setTimeout(() => {
+          let area = document.getElementsByClassName("message_show")[0];
           area.scrollTop = area.scrollHeight;
-        },100)
+        }, 100);
       },
-      addFriend(){
-        this.$prompt('请输入要添加的账号', '提示').then(({ result, value }) => {
-          if (result) {
-            socket.emit("addFriendTo", {
-                from: {
-                  user_name: this.user,
-                  user_ava: this.user_ava
-                },
-                to: value
+      addFriend() {
+          this.$prompt("请输入要添加的账号", "提示").then(({ result, value }) => {
+            if (result) {
+              if(this.checkIfFriend(value)){
+                socket.emit("addFriendTo", {
+                    from: {
+                      user_name: this.user,
+                      user_ava: this.user_ava
+                    },
+                    to: value
+                  }
+                );
+                this.$toast.success("请求已发送");
               }
-            );
-            this.$toast.success('请求已发送');
-          } else {
-            this.$toast.message('点击了取消');
-          }
+            } else {
+              this.$toast.message("取消操作");
+            }
+          });
+      },
+      //退出登录
+      loginOut() {
+        localforage.removeItem("token").then(res => {
+          this.$toast.success("退出登录");
+          this.loginStatus = false;
         });
+      },
+      /**
+       * 打开新的朋友任务处理的弹窗
+       * @param index - 数组中的位置
+       */
+      handleNewFriendTask(index) {
+        this.active_new_friend = index;
+        this.newFriendTaskModal = true;
+      },
+      //同意好友请求
+      agreeFriendRequest(){
+        addFriend({token:this.newFriendList[this.active_new_friend].token}).then(res=>{
+            if(res.data.errcode==0){
+              this.newFriendList.splice(this.active_new_friend,1);
+              this.active_new_friend = null;
+              this.newFriendTaskModal = false;
+              this.$toast.success('好友添加成功');
+            }else{
+              this.$toast.error('好友添加失败');
+            }
+        })
+      },
+      //检查是否已经是好友了
+      checkIfFriend(name){
+        let len = this.friendList.length;
+        for(let i=0;i<len;i++){
+          if(this.friendList[i].user_name==name){
+            this.$toast.error('你们已经是好友了')
+            return false
+          }
+        }
+        return true
       }
     }
   };
@@ -704,6 +776,10 @@
                     padding: 10px;
                     cursor: pointer;
 
+                    &:hover {
+                        background-color: #aaaaaa;
+                    }
+
                     .messageItem_leftside {
                         display: flex;
                         align-items: center;
@@ -762,7 +838,7 @@
             }
 
             .function_area_friend {
-                width: 308px;
+                width: 260px;
                 background-color: #eeeeee;
             }
         }
