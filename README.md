@@ -3,6 +3,8 @@
 这是一个用于学习node 所写的仿网页微信的即时聊天的<span style='color:red'>客户端</span><br>
 项目是用vue + socket-io写的。
 
+demo地址 http://47.105.210.34:8086
+
 ![界面示例](https://magiczhuzhu.club/ci/upload/chatroom_main.png)
 ###### 安装依赖
 
@@ -25,11 +27,12 @@ npm run build
 
 * 聊天广场 
 * 点对点聊天 
-* 好友功能
+* 在线添加好友功能
 * 聊天记录本地存储
 
-#### 未来
+#### ToDoList
 
+- [ ] 离线好友请求的处理
 - [ ] 修改头像
 - [ ] 聊天发送emoji
 - [ ] 等级系统
