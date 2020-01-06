@@ -5,7 +5,7 @@
 
 demo地址 http://47.105.210.34:8086
 
-![界面示例](https://magiczhuzhu.club/ci/upload/chatroom_main.png)
+![界面示例](https://magiczhuzhu.club/asstes/chatroom.png)
 ###### 安装依赖
 
 ```bash
@@ -28,6 +28,7 @@ npm run build
 * 聊天广场 
 * 点对点聊天 
 * 在线添加好友功能
+* 处理离线消息
 * 聊天记录本地存储
 
 #### ToDoList
