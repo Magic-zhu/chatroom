@@ -5,7 +5,7 @@
 
 demo地址 http://47.105.210.34:8086
 
-![界面示例](https://magiczhuzhu.club/asstes/chatroom.png)
+![界面示例](./chatroom.png)
 ###### 安装依赖
 
 ```bash
