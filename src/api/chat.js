@@ -1,5 +1,5 @@
 import axios from 'axios'
-let host = "http://47.105.210.34:8086";
+let host = process.env=='production'?"http://47.105.210.34:8086":'http://localhost:8086';
 // let host = 'http://localhost:8086';
 /**
  * 登录
