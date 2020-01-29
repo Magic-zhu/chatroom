@@ -63,3 +63,20 @@ export const addFriend = function(data) {
     data,
   )
 }
+
+export const uploadFile = function(data){
+    return axios.post(
+        host + '/upload',
+        data,
+    )
+}
+
+export const setUserAva = function(user_name,url){
+    return axios.post(
+        host + '/users/setUserAva',
+        {
+            user_name,
+            url,
+        },
+    )
+}

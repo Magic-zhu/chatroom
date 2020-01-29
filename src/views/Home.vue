@@ -1,6 +1,6 @@
 <template>
   <div class="ct">
-    <header>v1.0.0</header>
+    <header>v1.1.0</header>
 
     <!-- 登录模块 -->
     <mu-paper class="login_wrapper" :z-depth="3" v-if="!loginStatus">
@@ -19,7 +19,7 @@
     </mu-paper>
 
     <!-- 主界面 -->
-    <mu-paper v-if="loginStatus" class="message_box" :z-depth="4">
+    <mu-paper v-show="loginStatus" class="message_box" :z-depth="4">
       <!-- 左侧功能栏 -->
       <div class="function_pannel">
         <div class="function_pannel_ava" @click="openUserInfoPanel()">
@@ -60,7 +60,7 @@
             </div>
             <div class="messageItem_rightside">
               <span>{{item.user_name}}</span>
-              <p>{{item.message}}</p>
+              <div v-html="item.message"></div>
             </div>
           </div>
         </div>
@@ -89,10 +89,10 @@
                   <span class="message_time">{{item.time}}</span>
                   <span class="level_label"></span>
                 </p>
-                <p class="message_content_you">
+                <div class="message_content_you">
                   <span class="message_triangle_you"></span>
-                  {{item.message}}
-                </p>
+                  <div v-html="item.message"></div>
+                </div>
               </div>
 
               <div class="message_item_right_me" v-if="item.user==user">
@@ -101,24 +101,24 @@
                   <span class="message_time">{{item.time}}</span>
                   <span class="level_label"></span>
                 </p>
-                <p class="message_content_me">
+                <div class="message_content_me">
                   <span class="message_triangle_me"></span>
-                  {{item.message}}
-                </p>
+                  <div v-html="item.message"></div>
+                </div>
               </div>
               <img :src="item.ava" alt class="message_ava" v-if="item.user==user" />
             </div>
           </div>
           <div class="message_send">
-            <div class="message_function_bar">
-                <div class="item">
-                    <mu-icon size="25" value="mood" color="black"></mu-icon>
-                </div>
-            </div>
+            <!-- <div class="message_function_bar">
+              <div class="item">
+                <mu-icon size="25" value="mood" color="black"></mu-icon>
+              </div>
+            </div>-->
             <div class="send_btn" @click="submitMessage">
               <span>发送</span>
             </div>
-            <div id="#ediotr"></div>
+            <div ref="editor" class="editor"></div>
             <!-- <textarea  v-model="message" class="send_message_box" @keypress.enter="submitMessage"/> -->
           </div>
         </div>
@@ -129,10 +129,13 @@
         <mu-paper :z-depth="1" class="function_area_friend">
           <mu-list>
             <mu-sub-header>新的朋友</mu-sub-header>
-            <mu-list-item avatar button :ripple="false"
-                v-for="(item, index) in newFriendList"
-                :key="'new_friend'+index"
-                @click="handleNewFriendTask(index)"
+            <mu-list-item
+              avatar
+              button
+              :ripple="false"
+              v-for="(item, index) in newFriendList"
+              :key="'new_friend'+index"
+              @click="handleNewFriendTask(index)"
             >
               <mu-list-item-action>
                 <mu-avatar>
@@ -156,7 +159,7 @@
             >
               <mu-list-item-action>
                 <mu-avatar>
-                  <img :src="item.user_ava" alt='' />
+                  <img :src="item.user_ava" alt />
                 </mu-avatar>
               </mu-list-item-action>
               <mu-list-item-title>{{item.user_name}}</mu-list-item-title>
@@ -200,7 +203,7 @@
           <div class="account_setting">
             <div class="ava mb10">
               <img :src="user_ava" alt />
-              <mu-button slot="actions">上传头像</mu-button>
+              <mu-button slot="actions" @click='uploadAva()'>上传头像</mu-button>
             </div>
             <span class="mb10">用户账号:{{user}}</span>
             <mu-button slot="actions" color="primary" @click="loginOut()">退出登录</mu-button>
@@ -228,29 +231,14 @@
         </mu-list>
       </mu-bottom-sheet>
     </mu-container>
+    <input type="file" ref="file" style="display:none">
   </div>
 </template>
 <script>
-
 import io from "socket.io-client";
 import localforage from "localforage";
 import defaultAva from "../assets/defaultAva.png";
 import Editor from "wangeditor";
-var ed = new Editor('#editor');
-ed.customConfig.menus = [
-    'bold',  // 粗体
-    'fontSize',  // 字号
-    'fontName',  // 字体
-    'italic',  // 斜体
-    'underline',  // 下划线
-    'strikeThrough',  // 删除线
-    'foreColor',  // 文字颜色
-    'backColor',  // 背景颜色
-    'emoticon',  // 表情
-    'undo',  // 撤销
-    'redo'  // 重复
-]
-ed.create()
 // const socket = io("http://47.105.210.34:8086", {
 //   transports: ["websocket", "xhr-polling", "jsonp-polling"],
 //   autoConnect: false
@@ -266,7 +254,9 @@ import {
   register,
   checkLogin,
   getFriendList,
-  addFriend
+  addFriend,
+  uploadFile,
+  setUserAva
 } from "../api/chat";
 
 export default {
@@ -313,7 +303,11 @@ export default {
       bottomSheetOpen: false, // 点击好友列表弹窗
       addFriendModal: false, // 加好友的弹窗
       personnalInfoModal: false, // 个人信息弹窗
-      input_addFriendDialog: false //输入好友账号 添加好友
+      input_addFriendDialog: false, //输入好友账号 添加好友
+      /**
+       * 编辑器实例~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       */
+      editor: undefined
     };
   },
   mounted() {
@@ -347,6 +341,7 @@ export default {
       this.handleChatMessage(data);
     });
 
+    //处理自己发出去的消息
     socket.on("chatBackSelf", data => {
       let index = this.findIndexByUsername(this.active_chat);
       this.messages.push(data);
@@ -374,6 +369,26 @@ export default {
       });
       socket.emit("offLineMessagesReceived", { user: this.user });
     });
+
+    //检查离线好友请求
+    socket.on('offLineFriendRequest',data=>{
+        
+    })
+
+    this.$refs.file.onchange = (e) =>{
+        let postData = new FormData();
+        postData.append('file',e.target.files[0]);
+        this.loading = true;
+        uploadFile(postData).then(res=>{
+            setUserAva(this.user,res.data.data).then(res=>{
+                if(res.data.errcode==0){
+                    this.$toast.success('上传头像成功') 
+                }
+            })
+            this.user_ava = res.data.data;
+            this.loading = false;
+        })
+    }
   },
   beforeDestroy() {
     socket.close();
@@ -409,6 +424,7 @@ export default {
         this.chat();
       }
       this.message = "";
+      this.editor.txt.html("");
     },
     /**
      * @params - to 发送对象
@@ -440,6 +456,7 @@ export default {
           });
           socket.open();
           this.loginStatus = true;
+          this.initEditor();
           this.$toast.success("登录成功");
         } else {
           this.$toast.error(res.data.message);
@@ -472,6 +489,7 @@ export default {
               socket.emit("newUser", { user: res.data.data.user_name });
               this.initData();
               this.loginStatus = true;
+              this.initEditor();
             }
           });
         } else {
@@ -697,440 +715,40 @@ export default {
         }
       }
       return true;
+    },
+    //初始化编辑器
+    initEditor() {
+      if (!this.editor) {
+        var ed = new Editor(this.$refs.editor);
+        ed.customConfig.menus = [
+          "bold", // 粗体
+          "fontSize", // 字号
+          "fontName", // 字体
+          "italic", // 斜体
+          "underline", // 下划线
+          "strikeThrough", // 删除线
+          "foreColor", // 文字颜色
+          "backColor", // 背景颜色
+          "emoticon", // 表情
+          "undo", // 撤销
+          "redo" // 重复
+        ];
+        ed.customConfig.zIndex = 1;
+        let _this = this;
+        ed.customConfig.onchange = function(html) {
+          // html 即变化之后的内容
+          _this.message = html;
+        };
+        ed.create();
+        this.editor = ed;
+      }
+    },
+    uploadAva(){
+        this.$refs.file.click();
     }
   }
 };
 </script>
 <style lang="less" scoped>
-.ct {
-  height: 100%;
-  width: 100%;
-  background: -webkit-linear-gradient(
-    -225deg,
-    rgba(239, 0, 252, 1) 0,
-    rgba(109, 9, 239, 1) 100%
-  );
-  background: -moz-linear-gradient(
-    315deg,
-    rgba(239, 0, 252, 1) 0,
-    rgba(109, 9, 239, 1) 100%
-  );
-  background: linear-gradient(
-    315deg,
-    rgba(239, 0, 252, 1) 0,
-    rgba(109, 9, 239, 1) 100%
-  );
-  background-position: 50% 50%;
-  overflow: hidden;
-  position: relative;
-
-  header {
-    font-size: 50px;
-    text-align: center;
-    color: white;
-    margin-top: 30px;
-  }
-
-  .login_wrapper {
-    opacity: 1;
-    background-color: white;
-    width: 350px;
-    height: 260px;
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    margin: auto;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-
-    .login_item {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 20px;
-
-      span {
-        width: 80px;
-      }
-    }
-
-    .login_footer {
-      width: 100%;
-      display: flex;
-      justify-content: space-around;
-    }
-  }
-}
-
-.message_box {
-  background-color: white;
-  margin: 30px auto;
-  width: 900px;
-  height: 600px;
-  display: flex;
-
-  .function_pannel {
-    width: 70px;
-    height: 100%;
-    background-color: #333333;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-
-    .function_pannel_ava {
-      width: 70px;
-      height: 70px;
-      padding: 10px;
-      cursor: pointer;
-
-      img {
-        width: 50px;
-        height: 50px;
-      }
-    }
-
-    .function_pannel_chat {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 20px;
-    }
-
-    .function_pannel_friend {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-top: 20px;
-    }
-  }
-
-  .function_area {
-    flex: 1;
-    display: flex;
-    .messageList {
-      width: 260px;
-
-      .messageItem {
-        width: 100%;
-        height: 60px;
-        border-bottom: 1px solid #eeeeee;
-        display: flex;
-        align-items: center;
-        padding: 10px;
-        cursor: pointer;
-
-        &:hover {
-          background-color: #aaaaaa;
-        }
-
-        .messageItem_leftside {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          width: 40px;
-          height: 40px;
-
-          img {
-            width: 40px;
-            height: 40px;
-          }
-
-          span {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            border-radius: 5px;
-            background-color: red;
-            right: -5px;
-            top: -5px;
-          }
-        }
-
-        .messageItem_rightside {
-          margin-left: 10px;
-
-          p {
-            color: grey;
-            font-size: 10px;
-          }
-        }
-      }
-    }
-
-    .chat_area {
-      flex: 1;
-
-      .chat_area_header {
-        height: 70px;
-        background-color: rgb(243, 243, 243);
-        display: flex;
-        align-items: center;
-        font-size: 20px;
-        padding: 0 20px;
-      }
-    }
-
-    .friendList {
-      .messageList();
-      background-color: #eeeeee;
-    }
-
-    .friendInfo {
-      .chat_area();
-    }
-
-    .function_area_friend {
-      width: 260px;
-      background-color: #eeeeee;
-    }
-  }
-
-  .message_show {
-    height: 400px;
-    margin: 0 auto;
-    overflow-y: auto;
-    background-color: rgb(243, 243, 243);
-    padding: 20px;
-    border-bottom: 1px solid #cccccc;
-    border-top: 1px solid #cccccc;
-
-    .message_time {
-      font-size: 10px;
-    }
-
-    .message_title_you {
-      color: grey;
-      font-size: 14px;
-
-      span {
-        margin-left: 10px;
-      }
-    }
-
-    .message_title_me {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      color: grey;
-      font-size: 14px;
-
-      span {
-        margin-right: 10px;
-      }
-    }
-
-    .message_item {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-      width: 100%;
-    }
-
-    .message_item_me {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      margin-bottom: 10px;
-      width: 100%;
-    }
-
-    .message_content_me {
-      position: relative;
-      padding: 5px;
-      margin-right: 20px;
-      min-height: 40px;
-      border-radius: 4px;
-      background-color: lightblue;
-      min-width: 200px;
-      max-width: 300px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      word-break: break-all;
-    }
-
-    .message_content_you {
-      position: relative;
-      padding: 5px;
-      margin-left: 20px;
-      min-height: 40px;
-      border-radius: 4px;
-      background-color: white;
-      min-width: 200px;
-      max-width: 300px;
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      word-break: break-all;
-    }
-
-    .message_ava {
-      width: 50px;
-      height: 50px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-
-    .message_triangle_me {
-      position: absolute;
-      right: -12px;
-      top: 10px;
-      height: 0;
-      width: 6px;
-      border-top: 6px solid lightblue;
-      border-bottom: 6px solid lightblue;
-      border-left: 6px solid lightblue;
-      border-right: 6px solid lightblue;
-      border-right-color: transparent;
-      border-bottom-color: transparent;
-      border-top-color: transparent;
-    }
-
-    .message_triangle_you {
-      position: absolute;
-      left: -12px;
-      top: 10px;
-      height: 0;
-      width: 6px;
-      border-top: 6px solid white;
-      border-bottom: 6px solid white;
-      border-left: 6px solid white;
-      border-right: 6px solid white;
-      border-left-color: transparent;
-      border-bottom-color: transparent;
-      border-top-color: transparent;
-    }
-  }
-
-  .message_send {
-    width: 100%;
-    height: 130px;
-    background-color: rgb(243, 243, 243);
-    position: relative;
-
-    .send_message_box {
-      height: 36px;
-      box-sizing: border-box;
-      width: 400px;
-      border: none;
-      background-color: #eeeeee;
-      width: 100%;
-      height: 100px;
-      outline: none;
-      box-sizing: border-box;
-      padding: 10px;
-      resize: none;
-    }
-
-    .message_function_bar {
-      width: 100%;
-       box-sizing: border-box;
-       padding: 0 10px;
-      height: 30px;
-      display: flex;
-      background-color: #eeeeee;
-      background-color: #eaeaea;
-      align-items: center;
-      .item{
-          cursor: pointer;
-          width: 30px;
-          height: 30px;
-          &:hover{
-              background-color: #cccccc;
-          }
-          display: flex;
-          align-items: center;
-          justify-content: center;
-      }
-    }
-
-    .send_btn {
-      width: 80px;
-      height: 36px;
-      position: absolute;
-      right: 20px;
-      bottom: 20px;
-      border: 1px solid #eeeeee;
-      padding: 2px 10px;
-      background-color: #cccccc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-
-      &:hover {
-        background-color: lightblue;
-        color: white;
-        cursor: pointer;
-      }
-    }
-  }
-}
-
-.pannel_box {
-  display: flex;
-  height: 400px;
-
-  .left_side {
-    width: 100px;
-    cursor: pointer;
-    border-right: 1px solid #eeeeee;
-    div {
-      width: 100px;
-    }
-    div:hover {
-      background-color: #eeeeee;
-    }
-    .active {
-      color: lightblue;
-    }
-  }
-
-  .right_side {
-    flex: 1;
-    padding: 20px;
-
-    .account_setting {
-      display: flex;
-      flex-direction: column;
-      .ava {
-        display: flex;
-        align-items: center;
-      }
-      img {
-        margin-right: 20px;
-        width: 80px;
-        height: 80px;
-      }
-    }
-  }
-}
-
-.sinput {
-  height: 36px;
-  box-sizing: border-box;
-  border: 1px solid lightgray;
-  width: 200px;
-  border-radius: 4px;
-  padding: 0 10px;
-  outline: none;
-}
-
-.mr20 {
-  margin-right: 20px;
-}
-
-.mt10 {
-  margin-top: 10px;
-}
-
-.mb10 {
-  margin-bottom: 10px;
-}
+@import "./home.less";
 </style>
