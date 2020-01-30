@@ -184,7 +184,7 @@
     <mu-dialog title="提示" width="360" :open.sync="newFriendTaskModal">
       接受此人的好友请求吗？
       <mu-button slot="actions" flat color="success" @click="agreeFriendRequest()">是</mu-button>
-      <mu-button slot="actions" flat color="primary" @click="newFriendTaskModal=false">否</mu-button>
+      <mu-button slot="actions" flat color="primary" @click="disagreeFriendRequest()">否</mu-button>
     </mu-dialog>
 
     <!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
@@ -203,7 +203,7 @@
           <div class="account_setting">
             <div class="ava mb10">
               <img :src="user_ava" alt />
-              <mu-button slot="actions" @click='uploadAva()'>上传头像</mu-button>
+              <mu-button slot="actions" @click="uploadAva()">上传头像</mu-button>
             </div>
             <span class="mb10">用户账号:{{user}}</span>
             <mu-button slot="actions" color="primary" @click="loginOut()">退出登录</mu-button>
@@ -222,7 +222,7 @@
             </mu-list-item-action>
             <mu-list-item-title>发消息</mu-list-item-title>
           </mu-list-item>
-          <mu-list-item button>
+          <mu-list-item button @click="deleteFriend()">
             <mu-list-item-action>
               <mu-icon value="close" color="red"></mu-icon>
             </mu-list-item-action>
@@ -231,7 +231,7 @@
         </mu-list>
       </mu-bottom-sheet>
     </mu-container>
-    <input type="file" ref="file" style="display:none">
+    <input type="file" ref="file" style="display:none" />
   </div>
 </template>
 <script>
@@ -256,7 +256,8 @@ import {
   getFriendList,
   addFriend,
   uploadFile,
-  setUserAva
+  setUserAva,
+  deleteFriend,
 } from "../api/chat";
 
 export default {
@@ -362,6 +363,11 @@ export default {
       this.$toast.info("有人加您为好友");
     });
 
+    //拒绝好友请求的信息
+    socket.on('refuseFriendFrom',data=>{
+      this.$toast.warning(data.from + '拒绝您的好友请求')
+    })
+
     //检查离线消息
     socket.on("offLineMessages", data => {
       data.forEach(item => {
@@ -371,24 +377,30 @@ export default {
     });
 
     //检查离线好友请求
-    socket.on('offLineFriendRequest',data=>{
-        
-    })
+    socket.on("offLineFriendRequest", data => {
+      console.log(data)
+      data.forEach(item => {
+        this.newFriendList.unshift(item);
+        this.$toast.info("有人加您为好友");
+      });
+      socket.emit("offLineFirendRequestReceived", { user: this.user });
+    });
 
-    this.$refs.file.onchange = (e) =>{
-        let postData = new FormData();
-        postData.append('file',e.target.files[0]);
-        this.loading = true;
-        uploadFile(postData).then(res=>{
-            setUserAva(this.user,res.data.data).then(res=>{
-                if(res.data.errcode==0){
-                    this.$toast.success('上传头像成功') 
-                }
-            })
-            this.user_ava = res.data.data;
-            this.loading = false;
-        })
-    }
+    //监听上传头像
+    this.$refs.file.onchange = e => {
+      let postData = new FormData();
+      postData.append("file", e.target.files[0]);
+      this.loading = true;
+      uploadFile(postData).then(res => {
+        setUserAva(this.user, res.data.data ,this.token).then(res => {
+          if (res.data.errcode == 0) {
+            this.$toast.success("上传头像成功");
+          }
+        });
+        this.user_ava = res.data.data;
+        this.loading = false;
+      });
+    };
   },
   beforeDestroy() {
     socket.close();
@@ -677,6 +689,7 @@ export default {
     //退出登录
     loginOut() {
       localforage.removeItem("token").then(res => {
+        socket.close();
         this.$toast.success("退出登录");
         this.loginStatus = false;
         this.personnalInfoModal = false;
@@ -704,6 +717,13 @@ export default {
           this.$toast.error("好友添加失败");
         }
       });
+    },
+    //拒绝好友请求
+    disagreeFriendRequest(){
+      socket.emit('refuseFriendRequest',{from:this.user,to:this.newFriendList[this.active_new_friend].user_name});
+      this.newFriendList.splice(this.active_new_friend,1);
+      this.active_new_friend = null;
+      this.newFriendTaskModal = false;
     },
     //检查是否已经是好友了
     checkIfFriend(name) {
@@ -743,8 +763,22 @@ export default {
         this.editor = ed;
       }
     },
-    uploadAva(){
-        this.$refs.file.click();
+    //上传头像
+    uploadAva() {
+      this.$refs.file.click();
+    },
+    //删除好友
+    deleteFriend() {
+      deleteFriend(this.token,this.user,this.friendList[this.bottomNowIndex].user_name)
+      .then(res=>{
+        if(res.data.errcode==0){
+          this.$toast.success('删除成功');
+          this.getFriendList();
+        }else{
+          this.$toast.error('删除失败')
+        }
+      })
+      this.closeBottomSheet();
     }
   }
 };

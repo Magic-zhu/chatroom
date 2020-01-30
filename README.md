@@ -1,11 +1,16 @@
 ## 项目介绍
 
+![image](https://img.shields.io/badge/Version-1.1.0-blue.svg)
+
 这是一个用于学习node 所写的仿网页微信的即时聊天的<span style='color:red'>客户端</span><br>
 项目是用vue + socket-io写的。
 
 demo地址 http://47.105.210.34:8086
 
-![界面示例](./chatroom.png)
+![界面示例](./chatroom1.png)
+![界面示例](./chatroom2.png)
+![界面示例](./chatroom3.png)
+
 ###### 安装依赖
 
 ```bash
@@ -27,7 +32,7 @@ npm run build
 
 * 聊天广场 
 * 点对点聊天 
-* 在线添加好友功能
+* 好友功能
 * 处理离线消息
 * 聊天记录本地存储
 * 富文本聊天 `v1.1.0+`
@@ -36,6 +41,8 @@ npm run build
 
 #### ToDoList
 
-* [ ] 离线好友请求的处理
+* 上传聊天记录
+* 好友系统重做 - 支持分组
+* 群功能
 
  

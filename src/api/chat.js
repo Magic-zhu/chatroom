@@ -1,6 +1,6 @@
 import axios from 'axios'
 let host = process.env=='production'?"http://47.105.210.34:8086":'http://localhost:8086';
-// let host = 'http://localhost:8086';
+
 /**
  * 登录
  * @param {*} user_name  -用户名
@@ -64,6 +64,10 @@ export const addFriend = function(data) {
   )
 }
 
+/**
+ * 上传文件
+ * @param {*} data 
+ */
 export const uploadFile = function(data){
     return axios.post(
         host + '/upload',
@@ -71,12 +75,35 @@ export const uploadFile = function(data){
     )
 }
 
+/**
+ * 设置头像
+ * @param {*} user_name 
+ * @param {*} url 
+ */
 export const setUserAva = function(user_name,url){
     return axios.post(
         host + '/users/setUserAva',
         {
             user_name,
             url,
+            token,
+        },
+    )
+}
+
+/**
+ * 删除好友
+ * @param {*} token 
+ * @param {*} user_name 
+ * @param {*} friend_name 
+ */
+export const deleteFriend = function(token,user_name,friend_name){
+    return axios.post(
+        host + '/users/deleteFriend',
+        {
+            token,
+            user_name,
+            friend_name,
         },
     )
 }
