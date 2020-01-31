@@ -118,8 +118,7 @@
             <div class="send_btn" @click="submitMessage">
               <span>发送</span>
             </div>
-            <div ref="editor" class="editor"></div>
-            <!-- <textarea  v-model="message" class="send_message_box" @keypress.enter="submitMessage"/> -->
+            <div ref="editor" class="editor" @keypress.enter="submitMessage"></div>
           </div>
         </div>
       </div>
@@ -713,6 +712,7 @@ export default {
           this.active_new_friend = null;
           this.newFriendTaskModal = false;
           this.$toast.success("好友添加成功");
+          this.getFriendList(); //刷新好友列表
         } else {
           this.$toast.error("好友添加失败");
         }

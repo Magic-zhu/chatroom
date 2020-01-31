@@ -1,6 +1,5 @@
 import axios from 'axios'
-let host = process.env != 'dev'?"http://47.105.210.34:8086":'http://localhost:8086';
-console.log(process.env)
+let host = process.env.NODE_ENV != 'development'?"http://47.105.210.34:8086":'http://localhost:8086';
 /**
  * 登录
  * @param {*} user_name  -用户名
