@@ -7,6 +7,8 @@
 
 demo地址 http://47.105.210.34:8086
 
+服务端仓库地址 https://github.com/Magic-zhu/chatroom_server
+
 ![界面示例](./chatroom1.png)
 ![界面示例](./chatroom2.png)
 ![界面示例](./chatroom3.png)
