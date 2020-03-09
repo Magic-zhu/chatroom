@@ -1,7 +1,6 @@
 <template>
   <div class="ct">
-    <header>v1.1.0</header>
-
+    <!-- <header>v1.1.0</header> -->
     <!-- 登录模块 -->
     <mu-paper class="login_wrapper" :z-depth="3" v-if="!loginStatus">
       <div class="login_item">
@@ -238,15 +237,15 @@ import io from "socket.io-client";
 import localforage from "localforage";
 import defaultAva from "../assets/defaultAva.png";
 import Editor from "wangeditor";
-// const socket = io("http://47.105.210.34:8086", {
-//   transports: ["websocket", "xhr-polling", "jsonp-polling"],
-//   autoConnect: false
-// }); //顺带解决本地的跨域
-
-const socket = io("http://localhost:8086", {
+const socket = io("http://47.105.210.34:8086", {
   transports: ["websocket", "xhr-polling", "jsonp-polling"],
   autoConnect: false
 }); //顺带解决本地的跨域
+
+// const socket = io("http://localhost:8086", {
+//   transports: ["websocket", "xhr-polling", "jsonp-polling"],
+//   autoConnect: false
+// }); //顺带解决本地的跨域
 
 import {
   login,
