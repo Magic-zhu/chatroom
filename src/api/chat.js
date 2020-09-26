@@ -79,7 +79,7 @@ export const uploadFile = function(data){
  * @param {*} user_name 
  * @param {*} url 
  */
-export const setUserAva = function(user_name,url){
+export const setUserAva = function(user_name,url,token){
     return axios.post(
         host + '/users/setUserAva',
         {

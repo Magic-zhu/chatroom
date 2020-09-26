@@ -22,18 +22,41 @@
       <!-- 左侧功能栏 -->
       <div class="function_pannel">
         <div class="function_pannel_ava" @click="openUserInfoPanel()">
-          <img :src="user_ava?user_ava:defaultAva" alt />
+          <img :src="user_ava ? user_ava : defaultAva" alt />
         </div>
         <mu-tooltip content="聊天信息" placement="right">
           <div class="function_pannel_chat" @click="changeActiveType('chat')">
-            <mu-icon size="40" value="chat" color="white" v-show="active_type!='chat'"></mu-icon>
-            <mu-icon size="40" value="chat" color="lightblue" v-show="active_type=='chat'"></mu-icon>
+            <mu-icon
+              size="40"
+              value="chat"
+              color="white"
+              v-show="active_type != 'chat'"
+            ></mu-icon>
+            <mu-icon
+              size="40"
+              value="chat"
+              color="lightblue"
+              v-show="active_type == 'chat'"
+            ></mu-icon>
           </div>
         </mu-tooltip>
         <mu-tooltip content="好友列表" placement="right">
-          <div class="function_pannel_friend" @click="changeActiveType('friend')">
-            <mu-icon size="40" value="contacts" color="white" v-show="active_type!='friend'"></mu-icon>
-            <mu-icon size="40" value="contacts" color="lightblue" v-show="active_type=='friend'"></mu-icon>
+          <div
+            class="function_pannel_friend"
+            @click="changeActiveType('friend')"
+          >
+            <mu-icon
+              size="40"
+              value="contacts"
+              color="white"
+              v-show="active_type != 'friend'"
+            ></mu-icon>
+            <mu-icon
+              size="40"
+              value="contacts"
+              color="lightblue"
+              v-show="active_type == 'friend'"
+            ></mu-icon>
           </div>
         </mu-tooltip>
         <mu-tooltip content="添加好友" placement="right">
@@ -44,21 +67,21 @@
       </div>
 
       <!-- 右侧功能区-->
-      <div class="function_area" v-show="active_type=='chat'">
+      <div class="function_area" v-show="active_type == 'chat'">
         <!-- 消息栏 -->
         <div class="messageList">
           <div
             v-for="(item, index) in messageList"
             :key="index"
-            class="messageItem"
-            @click="focusMessageItem(item.user_name,index)"
+            :class="active_chat==item.user_name?'messageItem messageItemActive':'messageItem'"
+            @click="focusMessageItem(item.user_name, index)"
           >
             <div class="messageItem_leftside">
               <img :src="item.ava" alt />
-              <span v-show="item.is_read===0"></span>
+              <span v-show="item.is_read === 0"></span>
             </div>
             <div class="messageItem_rightside">
-              <span>{{item.user_name}}</span>
+              <span>{{ item.user_name }}</span>
               <div v-html="item.message"></div>
             </div>
           </div>
@@ -67,25 +90,25 @@
         <!-- 聊天区域 -->
         <div class="chat_area">
           <div class="chat_area_header">
-            <span class="chat_area_who">{{active_chat}}</span>
+            <span class="chat_area_who">{{ active_chat }}</span>
           </div>
           <div class="message_show">
             <div
               v-for="(item, index) in messages"
               :key="index"
-              :class="item.user!=user?'message_item':'message_item_me'"
+              :class="item.user != user ? 'message_item' : 'message_item_me'"
             >
               <img
                 :src="item.ava"
                 alt
                 class="message_ava"
-                v-if="item.user!=user"
+                v-if="item.user != user"
                 @click="openModal(item.user)"
               />
-              <div class="message_item_right" v-if="item.user!=user">
+              <div class="message_item_right" v-if="item.user != user">
                 <p class="message_title_you">
-                  <span>{{item.user}}</span>
-                  <span class="message_time">{{item.time}}</span>
+                  <span>{{ item.user }}</span>
+                  <span class="message_time">{{ item.time }}</span>
                   <span class="level_label"></span>
                 </p>
                 <div class="message_content_you">
@@ -94,10 +117,10 @@
                 </div>
               </div>
 
-              <div class="message_item_right_me" v-if="item.user==user">
+              <div class="message_item_right_me" v-if="item.user == user">
                 <p class="message_title_me">
-                  <span>{{item.user}}</span>
-                  <span class="message_time">{{item.time}}</span>
+                  <span>{{ item.user }}</span>
+                  <span class="message_time">{{ item.time }}</span>
                   <span class="level_label"></span>
                 </p>
                 <div class="message_content_me">
@@ -105,7 +128,12 @@
                   <div v-html="item.message"></div>
                 </div>
               </div>
-              <img :src="item.ava" alt class="message_ava" v-if="item.user==user" />
+              <img
+                :src="item.ava"
+                alt
+                class="message_ava"
+                v-if="item.user == user"
+              />
             </div>
           </div>
           <div class="message_send">
@@ -115,15 +143,19 @@
               </div>
             </div>-->
             <div class="send_btn" @click="submitMessage">
-              <span>发送</span>
+              <span>发送(ctrl+Enter)</span>
             </div>
-            <div ref="editor" class="editor" @keypress.enter="submitMessage"></div>
+            <div
+              ref="editor"
+              class="editor"
+              @keypress="handleEditorKeyPress($event)"
+            ></div>
           </div>
         </div>
       </div>
 
       <!-- 好友列表 -->
-      <div class="function_area" v-show="active_type=='friend'">
+      <div class="function_area" v-show="active_type == 'friend'">
         <mu-paper :z-depth="1" class="function_area_friend">
           <mu-list>
             <mu-sub-header>新的朋友</mu-sub-header>
@@ -132,7 +164,7 @@
               button
               :ripple="false"
               v-for="(item, index) in newFriendList"
-              :key="'new_friend'+index"
+              :key="'new_friend' + index"
               @click="handleNewFriendTask(index)"
             >
               <mu-list-item-action>
@@ -140,7 +172,7 @@
                   <img :src="item.from.user_ava" alt />
                 </mu-avatar>
               </mu-list-item-action>
-              <mu-list-item-title>{{item.from.user_name}}</mu-list-item-title>
+              <mu-list-item-title>{{ item.from.user_name }}</mu-list-item-title>
               <mu-list-item-action>
                 <mu-icon value="chat_bubble"></mu-icon>
               </mu-list-item-action>
@@ -152,7 +184,7 @@
               button
               :ripple="false"
               v-for="(item, index) in friendList"
-              :key="index+'c'"
+              :key="index + 'c'"
               @click="openBotttomSheet(index)"
             >
               <mu-list-item-action>
@@ -160,7 +192,7 @@
                   <img :src="item.user_ava" alt />
                 </mu-avatar>
               </mu-list-item-action>
-              <mu-list-item-title>{{item.user_name}}</mu-list-item-title>
+              <mu-list-item-title>{{ item.user_name }}</mu-list-item-title>
               <mu-list-item-action>
                 <mu-icon value="chat_bubble"></mu-icon>
               </mu-list-item-action>
@@ -174,15 +206,39 @@
     <!--添加好友弹窗-->
     <mu-dialog title="提示" width="360" :open.sync="addFriendModal">
       要加此人为好友吗？
-      <mu-button slot="actions" flat color="primary" @click="sendAddFriendTask()">是</mu-button>
-      <mu-button slot="actions" flat color="primary" @click="closeSimpleDialog()">否</mu-button>
+      <mu-button
+        slot="actions"
+        flat
+        color="primary"
+        @click="sendAddFriendTask()"
+        >是</mu-button
+      >
+      <mu-button
+        slot="actions"
+        flat
+        color="primary"
+        @click="closeSimpleDialog()"
+        >否</mu-button
+      >
     </mu-dialog>
 
     <!--处理添加好友任务的弹窗-->
     <mu-dialog title="提示" width="360" :open.sync="newFriendTaskModal">
       接受此人的好友请求吗？
-      <mu-button slot="actions" flat color="success" @click="agreeFriendRequest()">是</mu-button>
-      <mu-button slot="actions" flat color="primary" @click="disagreeFriendRequest()">否</mu-button>
+      <mu-button
+        slot="actions"
+        flat
+        color="success"
+        @click="agreeFriendRequest()"
+        >是</mu-button
+      >
+      <mu-button
+        slot="actions"
+        flat
+        color="primary"
+        @click="disagreeFriendRequest()"
+        >否</mu-button
+      >
     </mu-dialog>
 
     <!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
@@ -192,19 +248,28 @@
     <!--        </mu-dialog>-->
 
     <!--个人信息面板弹窗-->
-    <mu-dialog title="设置" width="500" height="600" :open.sync="personnalInfoModal">
+    <mu-dialog
+      title="设置"
+      width="500"
+      height="600"
+      :open.sync="personnalInfoModal"
+    >
       <div class="pannel_box">
         <div class="left_side">
-          <div :class="pannel_active==0?'active':''">账号设置</div>
+          <div :class="pannel_active == 0 ? 'active' : ''">账号设置</div>
         </div>
         <div class="right_side">
           <div class="account_setting">
             <div class="ava mb10">
               <img :src="user_ava" alt />
-              <mu-button slot="actions" @click="uploadAva()">上传头像</mu-button>
+              <mu-button slot="actions" @click="uploadAva()"
+                >上传头像</mu-button
+              >
             </div>
-            <span class="mb10">用户账号:{{user}}</span>
-            <mu-button slot="actions" color="primary" @click="loginOut()">退出登录</mu-button>
+            <span class="mb10">用户账号:{{ user }}</span>
+            <mu-button slot="actions" color="primary" @click="loginOut()"
+              >退出登录</mu-button
+            >
           </div>
         </div>
       </div>
@@ -237,15 +302,15 @@ import io from "socket.io-client";
 import localforage from "localforage";
 import defaultAva from "../assets/defaultAva.png";
 import Editor from "wangeditor";
-const socket = io("http://47.105.210.34:8086", {
-  transports: ["websocket", "xhr-polling", "jsonp-polling"],
-  autoConnect: false
-}); //顺带解决本地的跨域
-
-// const socket = io("http://localhost:8086", {
+// const socket = io("http://47.105.210.34:8086", {
 //   transports: ["websocket", "xhr-polling", "jsonp-polling"],
 //   autoConnect: false
 // }); //顺带解决本地的跨域
+
+const socket = io("http://localhost:8086", {
+  transports: ["websocket", "xhr-polling", "jsonp-polling"],
+  autoConnect: false
+}); //顺带解决本地的跨域
 
 import {
   login,
@@ -255,7 +320,7 @@ import {
   addFriend,
   uploadFile,
   setUserAva,
-  deleteFriend,
+  deleteFriend
 } from "../api/chat";
 
 export default {
@@ -288,7 +353,7 @@ export default {
           user_name: "聊天广场",
           message: "",
           ava:
-            "https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=1869386756,1749725382&fm=26&gp=0.jpg",
+            "http://cdn.magiczhu.cn/chatroom/images/chatroom.png",
           is_read: 1,
           message_list: []
         }
@@ -362,9 +427,9 @@ export default {
     });
 
     //拒绝好友请求的信息
-    socket.on('refuseFriendFrom',data=>{
-      this.$toast.warning(data.from + '拒绝您的好友请求')
-    })
+    socket.on("refuseFriendFrom", data => {
+      this.$toast.warning(data.from + "拒绝您的好友请求");
+    });
 
     //检查离线消息
     socket.on("offLineMessages", data => {
@@ -376,7 +441,7 @@ export default {
 
     //检查离线好友请求
     socket.on("offLineFriendRequest", data => {
-      console.log(data)
+      console.log(data);
       data.forEach(item => {
         this.newFriendList.unshift(item);
         this.$toast.info("有人加您为好友");
@@ -389,15 +454,19 @@ export default {
       let postData = new FormData();
       postData.append("file", e.target.files[0]);
       this.loading = true;
-      uploadFile(postData).then(res => {
-        setUserAva(this.user, res.data.data ,this.token).then(res => {
+      uploadFile(postData)
+        .then(res => {
+          this.user_ava = res.data.data;
+          return setUserAva(this.user, res.data.data, this.token);
+        })
+        .then(res => {
           if (res.data.errcode == 0) {
+            this.loading = false;
             this.$toast.success("上传头像成功");
+          } else {
+            this.$toast.error("上传头像失败");
           }
         });
-        this.user_ava = res.data.data;
-        this.loading = false;
-      });
     };
   },
   beforeDestroy() {
@@ -419,7 +488,7 @@ export default {
     },
     //聊天广场
     submitMessage(e) {
-      e.preventDefault();
+      e && e.preventDefault();
       if (this.message == "") return;
       if (this.active_chat == "聊天广场") {
         //群发
@@ -718,9 +787,12 @@ export default {
       });
     },
     //拒绝好友请求
-    disagreeFriendRequest(){
-      socket.emit('refuseFriendRequest',{from:this.user,to:this.newFriendList[this.active_new_friend].user_name});
-      this.newFriendList.splice(this.active_new_friend,1);
+    disagreeFriendRequest() {
+      socket.emit("refuseFriendRequest", {
+        from: this.user,
+        to: this.newFriendList[this.active_new_friend].user_name
+      });
+      this.newFriendList.splice(this.active_new_friend, 1);
       this.active_new_friend = null;
       this.newFriendTaskModal = false;
     },
@@ -768,16 +840,24 @@ export default {
     },
     //删除好友
     deleteFriend() {
-      deleteFriend(this.token,this.user,this.friendList[this.bottomNowIndex].user_name)
-      .then(res=>{
-        if(res.data.errcode==0){
-          this.$toast.success('删除成功');
+      deleteFriend(
+        this.token,
+        this.user,
+        this.friendList[this.bottomNowIndex].user_name
+      ).then(res => {
+        if (res.data.errcode == 0) {
+          this.$toast.success("删除成功");
           this.getFriendList();
-        }else{
-          this.$toast.error('删除失败')
+        } else {
+          this.$toast.error("删除失败");
         }
-      })
+      });
       this.closeBottomSheet();
+    },
+    handleEditorKeyPress(e){
+      if(e.key=='Enter'&&e.ctrlKey==true){
+        this.submitMessage()
+      }
     }
   }
 };
