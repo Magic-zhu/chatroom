@@ -484,6 +484,7 @@ export default {
         err && console.error(err);
         this.messageList = value || this.messageList;
       });
+      //朋友列表
       this.getFriendList();
     },
     //聊天广场
