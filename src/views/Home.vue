@@ -241,12 +241,6 @@
       >
     </mu-dialog>
 
-    <!--        <mu-dialog title="输入账号?" width="600" max-width="80%" :esc-press-close="false" :overlay-close="false" :open.sync="openAlert">-->
-    <!--            <mu-text-field v-model="form.input"></mu-text-field>-->
-    <!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Disagree</mu-button>-->
-    <!--            <mu-button slot="actions" flat color="primary" @click="closeAlertDialog">Agree</mu-button>-->
-    <!--        </mu-dialog>-->
-
     <!--个人信息面板弹窗-->
     <mu-dialog
       title="设置"
@@ -434,9 +428,10 @@ export default {
     //检查离线消息
     socket.on("offLineMessages", data => {
       data.forEach(item => {
-        this.handleChatMessage(JSON.parse(item));
+        console.log(item)
+        this.handleChatMessage(item);
       });
-      socket.emit("offLineMessagesReceived", { user: this.user });
+      // socket.emit("offLineMessagesReceived", { user: this.user });
     });
 
     //检查离线好友请求
